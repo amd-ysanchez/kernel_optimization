@@ -1,0 +1,195 @@
+---
+# Update this section ======================
+
+# TODO: indicate which items are only 
+
+# config for Tensile or Tensilelt
+ROCBLAS: False 
+
+# Grid design or List of sizes/single size
+GRID: False
+
+# works when GRID is TRUE and GRID_DESIGN is 1
+# GRID_DENSITY = [1,5]. 1-Highest density , 5-Lowest density.
+GRID_DENSITY: 4
+
+# If tuning for SK, set to True
+StreamK: True
+
+# If tuning with GA (Ductile), set to True
+GA: True
+
+# Enable if tuning for ALL sizes, single kernel. Only works with GA
+MACROTILE_OPT: False
+
+# Use the heuristics to have refined list of opt. param
+# values for each size. False works for GA only
+USE_HEURISTICS: False 
+
+# Tensilelite client build dir. Default is path/to/tensilelite/build_tmp
+BUILD_DIR: build_tmp
+
+# CU
+# MI350-SPX
+CUs: 256
+# MI300-SPX
+#CUs: 304
+# MI308-SPX
+#CUs: 80
+# MI300-CPX
+# CUs: 38
+# MI308-CPX
+# CUs: 20
+
+# XCC: 308:4, 300X: 8, 300A: 6. default: 4
+XCC: 8
+
+# Matrix orientation
+TRANSA: 'T'
+TRANSB: 'N'
+
+#Threshhold to remove MI with large MT for small sizes, which causes the TilesPerCU becomes very smaller (<<1). Should be less than 1. The smaller this threshold is, the larger the number of MIs are in the outputs. 
+TILETHRESHOLD: 0.85
+TILETHRESHOLDSMALL: 0.7 # TODO: babak add description
+
+# Cap for the number of MIs for each sizes - should not be less than 6 (3 waves option {(1,4),(4,1),(2,2)} + 2 MI (16x16 and 32x32))
+MAX_NUM_MI_PER_SIZE: 6 # why
+
+# This will be used only in the Config Generator
+MAX_NUM_KERNELS_PER_CONFIG: 180000
+
+# This is for the grid design, to eliminate sizes where one dimension is much larger than the other. 
+# MaxArrayWidthByte = 300000 Byte (MaxArrayWidth / elementSize(inputType))
+MaxArrayWidthByte: 300000
+K_dim_large_threshold: 131072 # This is for the grid design.
+
+# Input data type (for both A & B). Valid options: H/B/I8/S/D/C/Z/F8. default: H.
+DataType: "F8"
+DestDataType: "B"
+ComputeDataType: "S"
+
+# TODO: DELETE
+# size for sizes/single Size only (ignored if GRID is True). Default size for M, N, and K is : 128, and batch is 1.
+m_dim : 128
+n_dim : 128
+k_dim : 128
+b_dim : 1 # CAREFUL HERE: this number will be using in the grid based option. Generally, if GRID: True, this should be 1.
+
+K_dim_large_threshold: 131072 # TODO: fix this/remove
+
+MaxGSU: 128
+
+Sizes:
+    - [ 16, 16, 1, 8192 ]
+    - [ 464, 288, 1, 208 ]
+    - [ 864, 64, 1, 64 ]
+    - [ 448, 480, 1, 48 ]
+    - [ 864, 448, 1, 928 ]
+    - [ 736, 704, 1, 544 ]
+    - [ 928, 752, 1, 336 ]
+    # - [ 16, 80, 1, 8192 ]
+    # - [ 16, 32, 1, 65536 ]
+    # - [ 32, 80, 1, 8192 ]
+    # - [ 80, 80, 1, 8192 ]
+    # - [ 4096, 4096, 1, 8192]
+    # - [ 128, 128, 1, 8192]
+    # - [ 8192, 8192, 1, 8192]
+    # - [ 4864, 4096, 1, 8192]
+    # - [ 1024, 1024, 1, 8192]
+
+
+# DO NOT CHANGE ============================
+
+GRID_BOUNDARY_MT: !!python/tuple [256,256]
+GRID_BOUNDARY_K_LEVELS: !!python/tuple [256,1024,4096,8192,16384]
+
+#Threshold to remove low granularity MI (larger number, more MIs in the output)
+GRANTHRESHOLD: 0.7
+
+# This is based on the default value in the repo. Overall, we don't expect a larger GSU wins in K/GSU<512.
+# MinKGSU: 32 # hipBLASLt
+# MinKGSU: 256 # rocBLAS
+MinKGSU: 512 # preferred
+
+# This threshold is used to narrow down the MI selection with LSU
+LSUTHRESHOLD: 65536
+
+# MT Configs
+MIN_MT0: 4
+MAX_MT0: 512
+
+MIN_MT1: 4
+MAX_MT1: 512
+
+#LIST_OF_WAVEs_TO_INCLUDE: null
+LIST_OF_WAVEs_TO_INCLUDE:
+    - !!python/tuple [4, 1]
+    - !!python/tuple [2, 2]
+    - !!python/tuple [1, 4]
+    - !!python/tuple [1, 2]
+    - !!python/tuple [2, 1]
+    - !!python/tuple [1, 1]
+
+# 256x256 = 65536
+# 256x128 = 32768
+# 128x128 = 16384
+# for MI300 series
+LIST_OF_MT_MAX_SIZE:
+    H: 65536
+    B: 65536
+    S: 65536
+    D: 65536
+    C: 32768
+    Z: 16384
+    I8: 65536
+    X: 65536
+    F8: 65536
+    F8B8: 65536
+
+# MI300 Matrix Instruction
+ONLY_INCLUDE_MIs:
+    H:
+      - !!python/tuple [4,4,4,16] #MI300
+      # - !!python/tuple [16,16,4,4] # never use 16x16x4x4
+      # - !!python/tuple [16,16,16,1] #MI300
+      # - !!python/tuple [32,32,4,2] # never use 32x32x4x2
+      # - !!python/tuple [32,32,8,1] #MI300                          
+      - !!python/tuple [16,16,32,1] #MI350
+      - !!python/tuple [32,32,16,1] #MI350
+    B:
+      - !!python/tuple [4,4,4,16] #MI300
+      # - !!python/tuple [16,16,4,4] # never use 16x16x4x4
+      # - !!python/tuple [16,16,16,1] #MI300
+      # - !!python/tuple [32,32,4,2] # never use 32x32x4x2
+      # - !!python/tuple [32,32,8,1] #MI300
+      - !!python/tuple [16,16,32,1] #MI350
+      - !!python/tuple [32,32,16,1] #MI350
+    S:
+      - !!python/tuple [16,16,4,1]
+      - !!python/tuple [32,32,2,1]
+    X:
+      - !!python/tuple [32,32,4,1]
+      - !!python/tuple [16,16,8,1]
+    D:
+      - !!python/tuple [16,16,4,1]
+    C:
+      - !!python/tuple [16,16,4,1]
+    Z:
+      - !!python/tuple [16,16,4,1]
+    I8:
+      - !!python/tuple [32,32,16,1]
+      - !!python/tuple [16,16,32,1]
+      - !!python/tuple [4,4,4,16]
+    F8: # similar to I8
+      # - !!python/tuple [32,32,16,1] #MI300
+      # - !!python/tuple [16,16,32,1] #MI300
+      - !!python/tuple [4,4,4,16] #MI300
+      - !!python/tuple [16,16,128,1] #MI350
+      - !!python/tuple [32,32,64,1] #MI350
+    F8B8: # similar to I8
+      # - !!python/tuple [32,32,16,1] #MI300
+      # - !!python/tuple [16,16,32,1] #MI300
+      - !!python/tuple [4,4,4,16] #MI300
+      - !!python/tuple [16,16,128,1] #MI350
+      - !!python/tuple [32,32,64,1] #MI350
+
