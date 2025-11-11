@@ -39,7 +39,7 @@ def main(hipblaslt_path, lib_dir='lib', log_summary=None, devices="0,1,2,3,4,5,6
     
     # 2 - MERGE KERNELS
     print(f'Merging new kernels into a single library...')
-    merge(hipblaslt_path, input_dir,  os.path.join(workdir, 'lib'))
+    merge(hipblaslt_path, input_dir,  os.path.join(workdir, 'lib'), workdir)
 
     # 3 - BENCHMARK AND WRITE FINAL LIBRARY
     print(f'Postprocessing new kernels...')
