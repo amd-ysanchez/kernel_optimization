@@ -41,7 +41,7 @@ cd rocm-libraries/projects/hipblaslt
 
 ### Python requirements
 
-Install the TuningDriver packeged wheel and other required packages by running:
+Install the **TuningDriver** packeged wheel and other requirements by running:
 
 ```
 pip install tuningdriver-0.1.0-py3-none-any.whl
@@ -52,12 +52,12 @@ pip install tuningdriver-0.1.0-py3-none-any.whl
 
 The first step is to generate the necessary configs to run the kernel optimization.
 
-For this we run the script *gen_configs.py* found in */path/to/TuningDriver/kernel_optimization*.
+For this we run the script *gen_configs.py*
 
 With the following arguments:
 
 ```
-usage: gen_configs.py [-h] [--output_dir OUTPUT_DIR] [--device DEVICE] [--thr THR] hipblaslt_path gemm_log
+usage: gen_configs.py [-h] [--device DEVICE] [--thr THR] [--architecture ARCHITECTURE] [--workdir WORKDIR] hipblaslt_path gemm_log
 
 Generate TuningDriver config files
 
@@ -67,22 +67,22 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --output_dir OUTPUT_DIR, -o OUTPUT_DIR
-                        Output directory
   --device DEVICE, -d DEVICE
                         Which device to run the benchmark in
   --thr THR             Filter threshold on GEMM contribution.
   --architecture ARCHITECTURE, -a ARCHITECTURE
                         Target architecture
+  --workdir WORKDIR, -w WORKDIR
+                        Dir to store intermediate files
 ```
 
 For example:
 
 ```
-python gen_configs.py /path/to/rocm-libraries/projects/hipblaslt/ /path/to/hipblaslt.log -a gfx950
+python gen_configs.py /path/to/rocm-libraries/projects/hipblaslt/ /path/to/hipblaslt.log -a gfx950 --workdir WORKDIR
 ```
 
-The above command would create a folder called *tunings* that would look like the following:
+The above command would create a folder called *WORKDIR/tunings* that would look like the following:
 
 ```
 -rwxr-xr-x 1 root root    555 Oct 23 12:40 BBS_TN_0.sh
@@ -106,7 +106,7 @@ where each yaml file corresponds to a GEMM that would be optimized with a new ke
 ## Running GA Optimization
 We have our new configs ready, now we just will run the kernel optimization on all the GEMMs. 
 
-We will use the script *optimize.py*, found in */path/to/TuningDriver/kernel_optimization*.
+We will use the script *optimize.py*
 
 This script performs several steps.
 
@@ -120,16 +120,17 @@ This script performs several steps.
 Usage:
 
 ```
-usage: optimize.py [-h] [--library_dir LIBRARY_DIR] [--devices DEVICES] hipblaslt_path input_dir
+usage: optimize.py [-h] [--workdir WORKDIR] [--library_dir LIBRARY_DIR] [--log_summary LOG_SUMMARY] [--devices DEVICES] hipblaslt_path
 
 Merge tuning results into a single library.
 
 positional arguments:
   hipblaslt_path        Path to hipBLASLt
-  input_dir             Path to tuning directory
 
 options:
   -h, --help            show this help message and exit
+  --workdir WORKDIR, -w WORKDIR
+                        Dir to store intermediate files.
   --library_dir LIBRARY_DIR
                         Final library output directory
   --log_summary LOG_SUMMARY
@@ -141,21 +142,21 @@ options:
 Example:
 
 ```
-python /path/to/TuningDriver/kernel_optimization/optimize.py tuning_dir --devices=0,1,2,3
+python optimize.py --workdir WORKDIR --devices=0,1,2,3
 ```
 To run on all 8 devices just remove the *--devices* flag. 
 
 We may want to detach the script call from the terminal and run it on the background (nohup command and *&*).
 
 ```
-nohup python -u /path/to/TuningDriver/kernel_optimization/optimize.py tuning_dir --devices=0,1,2,3 2>err 1>out &
+nohup python -u optimize.py --workdir WORKDIR  --devices=0,1,2,3 2>err 1>out &
 ```
 
 <br>
 
 After running this script we will get three outputs:
-- **RAW performance comparison for all GEMMS.** Saved in *results/raw_results.csv*
-- **Filtered performance comparison for all GEMMS.** Saved in *results/final_results.csv*
+- **RAW performance comparison for all GEMMS.** Saved in *WORKDIR/results/raw_results.csv*
+- **Filtered performance comparison for all GEMMS.** Saved in *WORKDIR/results/final_results.csv*
 - **Final (filtered) library files** that will be merged with hipBLASLt. Saved in *library_dir* folder (default set to 'final').
 - Print message on screen showing the **average GEMM uplift** and, if the summary csv files was provided, the *weighted total uplift**.
 
