@@ -41,7 +41,7 @@ cd rocm-libraries/projects/hipblaslt
 
 ### Python requirements
 
-Install the **TuningDriver** packeged wheel and other requirements by running:
+Install the **TuningDriver** packaged wheel and other requirements by running:
 
 ```
 pip install tuningdriver-0.1.0-py3-none-any.whl
