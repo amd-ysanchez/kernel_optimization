@@ -49,6 +49,14 @@ def parse_latency(file: str, output_file: str = None) -> pd.DataFrame:
     return df
 
 
+def update_compute_type(compute_type):
+    if compute_type.startswith('c_'):
+        return compute_type
+    
+    if '32' in compute_type or '64' in compute_type:
+        return 'c_' + compute_type
+    
+
 def main(hipblaslt_path, log, device=0, thr=0.1, arch="gfx950", workdir="workdir"):
     
     os.makedirs(workdir, exist_ok=True) 
@@ -66,6 +74,7 @@ def main(hipblaslt_path, log, device=0, thr=0.1, arch="gfx950", workdir="workdir
         d['cold_iters'] = 20
         d['iters'] = 100
         d['rotating'] = 512
+        d['compute_type'] = update_compute_type(d['compute_type'])
         
     yaml.dump(data, open(log, 'w'), default_flow_style=None, sort_keys=False, width=5000)
     
