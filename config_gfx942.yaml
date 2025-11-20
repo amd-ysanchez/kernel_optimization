@@ -22,6 +22,9 @@ GA: True
 # Enable if tuning for ALL sizes, single kernel. Only works with GA
 MACROTILE_OPT: False
 
+# If true, each config will have 1 size. 
+ONE_SIZE_PER_CONFIG: True
+
 # Use the heuristics to have refined list of opt. param
 # values for each size. False works for GA only
 USE_HEURISTICS: False 
@@ -168,8 +171,13 @@ ONLY_INCLUDE_MIs:
       - !!python/tuple [16,16,4,1]
       - !!python/tuple [32,32,2,1]
     X:
-      - !!python/tuple [32,32,4,1]
-      - !!python/tuple [16,16,8,1]
+      # - !!python/tuple [4,4,4,16] #MI300
+      # - !!python/tuple [16,16,4,4] # never use 16x16x4x4
+      - !!python/tuple [16,16,16,1] #MI300
+      # - !!python/tuple [32,32,4,2] # never use 32x32x4x2
+      - !!python/tuple [32,32,8,1] #MI300
+      # - !!python/tuple [16,16,32,1] #MI350
+      # - !!python/tuple [32,32,16,1] #MI350
     D:
       - !!python/tuple [16,16,4,1]
     C:
@@ -192,4 +200,9 @@ ONLY_INCLUDE_MIs:
       - !!python/tuple [4,4,4,16] #MI300
       # - !!python/tuple [16,16,128,1] #MI350
       # - !!python/tuple [32,32,64,1] #MI350
-
+    B8F8: # similar to I8
+      - !!python/tuple [32,32,16,1] #MI300
+      - !!python/tuple [16,16,32,1] #MI300
+      - !!python/tuple [4,4,4,16] #MI300
+      # - !!python/tuple [16,16,128,1] #MI350
+      # - !!python/tuple [32,32,64,1] #MI350  

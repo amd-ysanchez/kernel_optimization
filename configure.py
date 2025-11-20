@@ -4,14 +4,16 @@ import pandas as pd
 import io
 import argparse
 import sys
- 
-from TuningDriver.interface import run_hipblaslt_bench, run_driver_py
 
-
-DTYPE = {'f16_r': 'H',
-         'bf16_r': 'B',
-         'f32_r': 'S',
-         'f8_r': 'F8'}
+DTYPE = {
+    'bf16_r': 'B',
+    'f16_r': 'H',
+    'f32_r': 'S',
+    'f64_r': 'D',
+    'f8_r': 'F8',
+    'bf8_r': 'B8',
+    'xf32': 'X'
+}
 
 COLUMNS = ['transA','transB','batch_count','m','n','k','a_type','b_type', 'c_type', 'd_type', 'compute_type']
 
@@ -60,10 +62,9 @@ def update_compute_type(compute_type):
 def main(hipblaslt_path, log, device=0, thr=0.1, arch="gfx950", workdir="workdir"):
     
     os.makedirs(workdir, exist_ok=True) 
-
-    print(f'Loading on {log}')
-    data = yaml.safe_load(open(log, 'r'))
     
+    print(f'Working on {log}')
+    data = yaml.safe_load(open(log))
     for d in data:
         if 'aux_type' in d:
             del d['aux_type']
@@ -75,14 +76,14 @@ def main(hipblaslt_path, log, device=0, thr=0.1, arch="gfx950", workdir="workdir
         d['iters'] = 100
         d['rotating'] = 512
         d['compute_type'] = update_compute_type(d['compute_type'])
-        
+    
     yaml.dump(data, open(log, 'w'), default_flow_style=None, sort_keys=False, width=5000)
     
-    ext = log.split('.')[-1] 
+    ext = log.split('.')[-1]
     output_file = log.replace(f".{ext}", f'.{ext}.out')
     
     output_file = os.path.join(workdir, os.path.basename(output_file)) 
-
+    
     if os.path.isfile(output_file):
         try:
             assert len(parse_latency(output_file)) == len(data)
@@ -99,26 +100,28 @@ def main(hipblaslt_path, log, device=0, thr=0.1, arch="gfx950", workdir="workdir
     df["total (us)"] = df["call_count"] * df["us"]
     df["% of total"] = 100 * df["total (us)"] / df["total (us)"].sum()
     
-    df_path = os.path.join(workdir,  os.path.basename(log).replace(f".{ext}", f".csv")) 
-    print(f"saving csv to... {df_path}")
+    df_path = os.path.join(workdir,  os.path.basename(log).replace(f".{ext}", f".csv"))
+    print(f"Saving csv to... {df_path}")
     df.sort_values("total (us)", ascending=False).to_csv(df_path, index=False)
     df = df[df["% of total"] >= thr][COLUMNS].drop_duplicates().reset_index(drop=True)
 
     df.to_csv(os.path.join(workdir,'unique_gemms.csv'), index=False) 
-
+    
     output_dir = os.path.join(workdir, 'tunings')
     os.makedirs(output_dir, exist_ok=True)
-
+    
+    print(f'Generating kernel optimization configs...')
     for (transA, transB, a_type, c_type, compute_type), gby in df.groupby(['transA', 'transB', 'a_type', 'c_type', 'compute_type']):
         compute_type = compute_type.lstrip('c_')
         sizes = gby[['m', 'n', 'batch_count', 'k']].values.tolist()
+        
         if len(sizes) == 0:
             continue
-          
+        
         config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"config_{arch}.yaml")
         assert os.path.isfile(config_file), f"Config file not found: {config_file}"
         
-        config = yaml.load(open(config_file), Loader=yaml.FullLoader )
+        config = yaml.load(open(config_file), Loader=yaml.FullLoader)
         config['Sizes'] = sizes
         config['DataType'] = DTYPE[a_type]
         config['DestDataType'] = DTYPE[c_type]
@@ -141,7 +144,7 @@ if __name__ == "__main__":
     parser.add_argument('gemm_log', help='GEMM yaml list file', type=str)
     parser.add_argument("--device", "-d", type=int, default=0, help='Which device to run the benchmark in')
     parser.add_argument("--thr", type=float, default=0.1, help='Filter threshold on GEMM contribution.')
-    parser.add_argument("--architecture", "-a", default="gfx950", help="Target architecture")
+    parser.add_argument('--architecture', "-a", help='Target architecture', type=str, default="gfx950")
     parser.add_argument("--workdir", "-w", default="workdir", help="Dir to store intermediate files")
 
     args = parser.parse_args()

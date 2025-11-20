@@ -25,7 +25,6 @@ def main(hipblaslt_path, lib_dir='lib', log_summary=None, devices="0,1,2,3,4,5,6
     if n_gemms > n_completed:
         print(f'Running optimization for {n_gemms - n_completed} GEMMS. This will take a while...')
         optimize_run(input_dir, devices=devices)
-        # TODO check progress
 
     if n_gemms == 0:
         raise ValueError(f"No GEMMs found in {input_dir}")
